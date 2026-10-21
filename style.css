@@ -112,30 +112,41 @@ body {
     margin-top: 2px;
 }
 
-/* Botão de Tema Inteligente */
+/* Controles do Cabeçalho (Exportar, Importar e Tema) */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.header-action-btn,
 .theme-toggle-btn {
     appearance: none;
     border: 1px solid rgba(255, 255, 255, 0.25);
     background: rgba(255, 255, 255, 0.16);
     backdrop-filter: blur(8px);
     color: #ffffff;
-    padding: 6px 12px;
+    padding: 6px 11px;
     border-radius: 999px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 600;
     transition: var(--transition);
 }
 
+.header-action-btn:hover,
 .theme-toggle-btn:hover {
     background: rgba(255, 255, 255, 0.28);
     border-color: rgba(255, 255, 255, 0.45);
     transform: translateY(-1px);
 }
 
+.header-action-btn:active,
 .theme-toggle-btn:active {
     transform: translateY(0);
 }
@@ -675,6 +686,14 @@ body {
 
     .app-header {
         padding: 20px 16px 16px;
+    }
+
+    .header-btn-label {
+        display: none;
+    }
+
+    .header-action-btn {
+        padding: 7px 9px;
     }
 
     .add-task-section {

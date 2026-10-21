@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f97316">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Minhas Tarefas</title>
+    <title>MyTask</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,15 +14,26 @@
         <header class="app-header">
             <div class="header-top">
                 <div class="header-branding">
-                    <h1>Minhas Tarefas</h1>
+                    <h1>MyTask</h1>
                     <span id="date-display" class="date-display"></span>
                 </div>
-                <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Alternar tema" title="Alternar tema">
-                    <span class="theme-icon-container" id="theme-icon">
-                        <!-- Ícone inserido dinamicamente via JS -->
-                    </span>
-                    <span class="theme-mode-label" id="theme-mode-label">Auto</span>
-                </button>
+                <div class="header-controls">
+                    <button type="button" id="btn-export-json" class="header-action-btn" aria-label="Exportar tarefas (.json)" title="Exportar backup (.json)">
+                        <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span class="header-btn-label">Exportar</span>
+                    </button>
+                    <button type="button" id="btn-import-json" class="header-action-btn" aria-label="Importar tarefas (.json)" title="Importar backup (.json)">
+                        <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <span class="header-btn-label">Importar</span>
+                    </button>
+                    <input type="file" id="import-json-input" class="hidden" accept=".json,application/json">
+                    <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Alternar tema" title="Alternar tema">
+                        <span class="theme-icon-container" id="theme-icon">
+                            <!-- Ícone inserido dinamicamente via JS -->
+                        </span>
+                        <span class="theme-mode-label" id="theme-mode-label">Auto</span>
+                    </button>
+                </div>
             </div>
             <div class="stats-bar">
                 <div class="stat-pill">

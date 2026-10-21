@@ -1,0 +1,8 @@
+{
+  "appId": "com.cesarzetto.mytask",
+  "appName": "MyTask",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

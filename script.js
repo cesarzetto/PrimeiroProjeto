@@ -10,6 +10,9 @@ let pendingDeleteAction = null;
 
 // Seletores do DOM
 const dateDisplay = document.getElementById('date-display');
+const btnExportJson = document.getElementById('btn-export-json');
+const btnImportJson = document.getElementById('btn-import-json');
+const importJsonInput = document.getElementById('import-json-input');
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
 const themeIcon = document.getElementById('theme-icon');
 const themeModeLabel = document.getElementById('theme-mode-label');
@@ -46,18 +49,41 @@ const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toast-message');
 let toastTimeout = null;
 
+// Helper para acessar o armazenamento nativo do Android (Capacitor SharedPreferences)
+function getNativePreferences() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) {
+        return window.Capacitor.Plugins.Preferences;
+    }
+    return null;
+}
+
 // Inicialização
-function init() {
-    initTheme();
+async function init() {
+    await initTheme();
     renderCurrentDate();
-    loadTasks();
+    await loadTasks();
     bindEvents();
     render();
 }
 
 // Inicialização do Tema Inteligente
-function initTheme() {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+async function initTheme() {
+    let saved = localStorage.getItem(THEME_STORAGE_KEY);
+    const prefs = getNativePreferences();
+    if (prefs) {
+        try {
+            const res = await prefs.get({ key: THEME_STORAGE_KEY });
+            if (res && res.value) {
+                saved = res.value;
+                localStorage.setItem(THEME_STORAGE_KEY, saved);
+            } else if (saved) {
+                await prefs.set({ key: THEME_STORAGE_KEY, value: saved });
+            }
+        } catch (e) {
+            // Fallback silencioso para localStorage
+        }
+    }
+
     if (saved === 'dark' || saved === 'light' || saved === 'auto') {
         currentThemeMode = saved;
     } else {
@@ -88,6 +114,10 @@ function cycleTheme() {
     }
 
     localStorage.setItem(THEME_STORAGE_KEY, currentThemeMode);
+    const prefs = getNativePreferences();
+    if (prefs) {
+        prefs.set({ key: THEME_STORAGE_KEY, value: currentThemeMode }).catch(() => {});
+    }
     applyTheme();
 
     const labelMap = {
@@ -163,23 +193,72 @@ function renderCurrentDate() {
     dateDisplay.textContent = formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
-function loadTasks() {
+async function loadTasks() {
+    let raw = null;
     try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        tasks = stored ? JSON.parse(stored) : [];
+        raw = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+        raw = null;
+    }
+
+    const prefs = getNativePreferences();
+    if (prefs) {
+        try {
+            const res = await prefs.get({ key: STORAGE_KEY });
+            if (res && res.value) {
+                raw = res.value;
+                localStorage.setItem(STORAGE_KEY, raw);
+            } else if (raw) {
+                await prefs.set({ key: STORAGE_KEY, value: raw });
+            }
+        } catch (e) {
+            // Fallback silencioso para localStorage
+        }
+    }
+
+    try {
+        tasks = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(tasks)) tasks = [];
     } catch (e) {
         tasks = [];
     }
 }
 
 function saveTasks() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    const serialized = JSON.stringify(tasks);
+    try {
+        localStorage.setItem(STORAGE_KEY, serialized);
+    } catch (e) {
+        // Ignora erro de cota
+    }
+
+    const prefs = getNativePreferences();
+    if (prefs) {
+        prefs.set({ key: STORAGE_KEY, value: serialized }).catch(() => {});
+    }
 }
 
 function bindEvents() {
     // Alternância do modo escuro inteligente
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', cycleTheme);
+    }
+
+    // Exportar e Importar JSON
+    if (btnExportJson) {
+        btnExportJson.addEventListener('click', exportTasksToJson);
+    }
+    if (btnImportJson && importJsonInput) {
+        btnImportJson.addEventListener('click', () => {
+            importJsonInput.value = '';
+            importJsonInput.click();
+        });
+        importJsonInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) {
+                importTasksFromJson(file);
+            }
+        });
     }
 
     // Adicionar nova tarefa
@@ -351,6 +430,151 @@ function confirmDeleteForever(id) {
             showToast('Tarefa excluída definitivamente');
         }
     );
+}
+
+// Exportação e Importação de Backup (.json)
+async function exportTasksToJson() {
+    if (tasks.length === 0) {
+        showToast('Não há tarefas para exportar');
+        return;
+    }
+
+    const now = new Date();
+    const dateStamp = now.toISOString().slice(0, 10);
+    const fileName = `mytask-backup-${dateStamp}.json`;
+
+    const payload = {
+        app: 'MyTask',
+        version: '1.2.0',
+        exportedAt: now.toISOString(),
+        tasks
+    };
+
+    const jsonString = JSON.stringify(payload, null, 2);
+
+    // Se estiver rodando no APK Android com Capacitor Filesystem + Share nativos
+    if (
+        window.Capacitor &&
+        window.Capacitor.isNativePlatform &&
+        window.Capacitor.isNativePlatform() &&
+        window.Capacitor.Plugins &&
+        window.Capacitor.Plugins.Filesystem &&
+        window.Capacitor.Plugins.Share
+    ) {
+        try {
+            const { Filesystem, Share } = window.Capacitor.Plugins;
+            const writeResult = await Filesystem.writeFile({
+                path: fileName,
+                data: jsonString,
+                directory: 'CACHE',
+                encoding: 'utf8'
+            });
+
+            await Share.share({
+                title: 'Backup MyTask (.json)',
+                text: 'Arquivo de backup das tarefas do aplicativo MyTask',
+                url: writeResult.uri,
+                dialogTitle: 'Salvar ou enviar backup (.json)'
+            });
+            showToast('Backup pronto para salvar');
+            return;
+        } catch (err) {
+            // Se o usuário cancelar o compartilhamento, não dispara erro
+            if (err && String(err.message || '').toLowerCase().includes('cancel')) {
+                return;
+            }
+        }
+    }
+
+    // Download padrão para navegadores Web (PC / Mobile Web)
+    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('Backup .json exportado com sucesso');
+}
+
+function importTasksFromJson(file) {
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+        try {
+            const content = event.target.result;
+            const parsed = JSON.parse(content);
+            const rawList = Array.isArray(parsed)
+                ? parsed
+                : parsed && Array.isArray(parsed.tasks)
+                ? parsed.tasks
+                : null;
+
+            if (!rawList) {
+                showToast('Arquivo .json inválido');
+                return;
+            }
+
+            let addedCount = 0;
+            let updatedCount = 0;
+            const existingMap = new Map(tasks.map((t) => [t.id, t]));
+
+            rawList.forEach((item) => {
+                if (!item || typeof item.title !== 'string' || !item.title.trim()) return;
+
+                const sanitizedTask = {
+                    id:
+                        typeof item.id === 'string' && item.id.trim()
+                            ? item.id.trim()
+                            : Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                    title: item.title.trim().slice(0, 140),
+                    completed: Boolean(item.completed),
+                    inTrash: Boolean(item.inTrash),
+                    createdAt: item.createdAt || new Date().toISOString()
+                };
+
+                if (sanitizedTask.completed) {
+                    sanitizedTask.completedAt = item.completedAt || new Date().toISOString();
+                    sanitizedTask.inTrash = false; // Tarefas concluídas não ficam na lixeira
+                }
+                if (sanitizedTask.inTrash && item.trashedAt) {
+                    sanitizedTask.trashedAt = item.trashedAt;
+                }
+
+                if (existingMap.has(sanitizedTask.id)) {
+                    existingMap.set(sanitizedTask.id, sanitizedTask);
+                    updatedCount++;
+                } else {
+                    existingMap.set(sanitizedTask.id, sanitizedTask);
+                    addedCount++;
+                }
+            });
+
+            tasks = Array.from(existingMap.values()).sort(
+                (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+            );
+
+            saveTasks();
+            render();
+
+            if (addedCount === 0 && updatedCount === 0) {
+                showToast('Nenhuma tarefa válida encontrada no arquivo');
+            } else {
+                showToast(`Importadas: ${addedCount} novas, ${updatedCount} atualizadas`);
+            }
+        } catch (err) {
+            showToast('Erro ao ler o arquivo .json');
+        }
+    };
+
+    reader.onerror = () => {
+        showToast('Erro ao abrir o arquivo selecionado');
+    };
+
+    reader.readAsText(file);
 }
 
 // Renderização
