@@ -299,6 +299,11 @@ function toggleTaskCompleted(id) {
     if (!task || task.inTrash) return;
 
     task.completed = !task.completed;
+    if (task.completed) {
+        task.completedAt = new Date().toISOString();
+    } else {
+        delete task.completedAt;
+    }
     saveTasks();
     render();
 }
@@ -306,6 +311,12 @@ function toggleTaskCompleted(id) {
 function moveToTrash(id) {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
+
+    // Tarefas concluídas não podem ser excluídas / enviadas para a lixeira
+    if (task.completed) {
+        showToast('Tarefas concluídas não podem ser excluídas');
+        return;
+    }
 
     task.inTrash = true;
     task.trashedAt = new Date().toISOString();
@@ -396,10 +407,28 @@ function createTaskElement(task) {
     li.className = `task-item${task.completed && !task.inTrash ? ' completed' : ''}`;
     li.dataset.id = task.id;
 
-    const formattedDate = formatShortDate(task.inTrash ? task.trashedAt || task.createdAt : task.createdAt);
-    const metaLabel = task.inTrash ? `Na lixeira • ${formattedDate}` : `Criada em ${formattedDate}`;
+    const formattedCreated = formatShortDate(task.createdAt);
+    const formattedCompleted = task.completedAt ? formatShortDate(task.completedAt) : '';
 
     if (!task.inTrash) {
+        // Se a tarefa estiver concluída, não renderiza o botão de excluir/lixeira
+        const actionsHtml = task.completed
+            ? ''
+            : `
+            <div class="task-actions">
+                <button type="button" class="action-btn btn-trash" data-action="move-to-trash" aria-label="Mover para a lixeira" title="Mover para a lixeira">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </div>
+            `;
+
+        const completedDateHtml = task.completed && formattedCompleted
+            ? `<span class="task-date-completed" title="Data e hora de conclusão">
+                    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Concluída em ${formattedCompleted}
+               </span>`
+            : '';
+
         li.innerHTML = `
             <div class="task-left">
                 <button type="button" class="check-btn" data-action="toggle" aria-label="${task.completed ? 'Desmarcar tarefa' : 'Marcar como concluída'}" title="${task.completed ? 'Desmarcar' : 'Concluir'}">
@@ -407,21 +436,23 @@ function createTaskElement(task) {
                 </button>
                 <div class="task-content">
                     <span class="task-title">${escapeHtml(task.title)}</span>
-                    <span class="task-meta">${metaLabel}</span>
+                    <div class="task-dates-row">
+                        <span class="task-date-created">Criada em ${formattedCreated}</span>
+                        ${completedDateHtml}
+                    </div>
                 </div>
             </div>
-            <div class="task-actions">
-                <button type="button" class="action-btn btn-trash" data-action="move-to-trash" aria-label="Mover para a lixeira" title="Mover para a lixeira">
-                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
-            </div>
+            ${actionsHtml}
         `;
     } else {
+        const formattedTrashed = formatShortDate(task.trashedAt || task.createdAt);
         li.innerHTML = `
             <div class="task-left">
                 <div class="task-content">
                     <span class="task-title">${escapeHtml(task.title)}</span>
-                    <span class="task-meta">${metaLabel}</span>
+                    <div class="task-dates-row">
+                        <span class="task-meta">Na lixeira • ${formattedTrashed}</span>
+                    </div>
                 </div>
             </div>
             <div class="task-actions">

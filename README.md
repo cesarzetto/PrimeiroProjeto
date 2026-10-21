@@ -5,7 +5,10 @@ Aplicativo web responsivo de lista de tarefas desenvolvido com HTML5, CSS3 e Jav
 ## Funcionalidades
 
 - **Adicionar tarefas**: Crie tarefas rapidamente com salvamento automático no navegador (`localStorage`).
-- **Concluir tarefas**: Marque ou desmarque tarefas concluídas e filtre entre *Todas*, *Pendentes* e *Concluídas*.
+- **Concluir tarefas**:
+  - Marque ou desmarque tarefas concluídas e filtre entre *Todas*, *Pendentes* e *Concluídas*.
+  - Exibe data e hora de criação no lado esquerdo e data e hora de conclusão no lado direito do card.
+  - Bloqueio de exclusão: tarefas concluídas são preservadas no histórico e não podem ser excluídas nem enviadas para a lixeira.
 - **Lixeira inteligente**:
   - Envie tarefas para a lixeira sem perdê-las imediatamente.
   - Restaure tarefas da lixeira de volta como **tarefas ativas**.

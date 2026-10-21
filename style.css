@@ -455,10 +455,29 @@ body {
     color: var(--text-muted);
 }
 
+.task-dates-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.task-date-created,
 .task-meta {
     font-size: 0.74rem;
     color: var(--text-muted);
-    margin-top: 2px;
+}
+
+.task-date-completed {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--success);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
 }
 
 /* Ações do Item */
