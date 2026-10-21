@@ -104,10 +104,10 @@ function applyTheme() {
 
     if (isDark) {
         document.documentElement.setAttribute('data-theme', 'dark');
-        if (metaThemeColor) metaThemeColor.setAttribute('content', '#1e1b4b');
+        if (metaThemeColor) metaThemeColor.setAttribute('content', '#7c2d12');
     } else {
         document.documentElement.removeAttribute('data-theme');
-        if (metaThemeColor) metaThemeColor.setAttribute('content', '#4f46e5');
+        if (metaThemeColor) metaThemeColor.setAttribute('content', '#f97316');
     }
 
     updateThemeButtonUI();
