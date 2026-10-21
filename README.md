@@ -10,6 +10,9 @@ Aplicativo web responsivo de lista de tarefas desenvolvido com HTML5, CSS3 e Jav
   - Envie tarefas para a lixeira sem perdê-las imediatamente.
   - Restaure tarefas da lixeira de volta como **tarefas ativas**.
   - Exclua tarefas definitivamente (individualmente ou esvaziando a lixeira).
+- **Modo Escuro Inteligente (Dark Mode)**:
+  - Botão no cabeçalho com 3 modos: **Automático** (segue a preferência do sistema operacional do celular/PC), **Escuro** forçado e **Claro** forçado.
+  - Lembra a preferência do usuário e atualiza a cor da barra de status do navegador no celular.
 - **Design Responsivo**: Adaptado para PC, tablets e smartphones.
 
 ## Estrutura do Projeto

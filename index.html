@@ -13,8 +13,16 @@
     <div class="app-container">
         <header class="app-header">
             <div class="header-top">
-                <h1>Minhas Tarefas</h1>
-                <span id="date-display" class="date-display"></span>
+                <div class="header-branding">
+                    <h1>Minhas Tarefas</h1>
+                    <span id="date-display" class="date-display"></span>
+                </div>
+                <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Alternar tema" title="Alternar tema">
+                    <span class="theme-icon-container" id="theme-icon">
+                        <!-- Ícone inserido dinamicamente via JS -->
+                    </span>
+                    <span class="theme-mode-label" id="theme-mode-label">Auto</span>
+                </button>
             </div>
             <div class="stats-bar">
                 <div class="stat-pill">
