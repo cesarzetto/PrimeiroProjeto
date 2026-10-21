@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Minhas Tarefas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-top">
+                <h1>Minhas Tarefas</h1>
+                <span id="date-display" class="date-display"></span>
+            </div>
+            <div class="stats-bar">
+                <div class="stat-pill">
+                    <span id="count-pending">0</span> pendentes
+                </div>
+                <div class="stat-pill completed">
+                    <span id="count-completed">0</span> concluídas
+                </div>
+                <div class="stat-pill trash">
+                    <span id="count-trash">0</span> na lixeira
+                </div>
+            </div>
+        </header>
+
+        <!-- Barra de Abas (Navegação) -->
+        <nav class="tabs-nav" aria-label="Visualizações de tarefas">
+            <button class="tab-btn active" data-tab="active" id="tab-active">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <span>Tarefas</span>
+                <span class="badge" id="badge-active">0</span>
+            </button>
+            <button class="tab-btn" data-tab="trash" id="tab-trash">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Lixeira</span>
+                <span class="badge badge-danger" id="badge-trash">0</span>
+            </button>
+        </nav>
+
+        <!-- Formulário de Nova Tarefa (visível na aba de Tarefas) -->
+        <section id="add-task-section" class="add-task-section">
+            <form id="task-form" class="task-form" autocomplete="off">
+                <input
+                    type="text"
+                    id="task-input"
+                    class="task-input"
+                    placeholder="Adicionar uma nova tarefa..."
+                    maxlength="140"
+                    required
+                >
+                <button type="submit" class="btn-add" aria-label="Adicionar tarefa">
+                    <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span class="btn-add-text">Adicionar</span>
+                </button>
+            </form>
+
+            <!-- Filtros internos das tarefas ativas -->
+            <div class="sub-filters" id="sub-filters">
+                <button type="button" class="filter-chip active" data-filter="all">Todas</button>
+                <button type="button" class="filter-chip" data-filter="pending">Pendentes</button>
+                <button type="button" class="filter-chip" data-filter="completed">Concluídas</button>
+            </div>
+        </section>
+
+        <!-- Barra de ações da Lixeira (visível apenas na aba Lixeira) -->
+        <section id="trash-actions-section" class="trash-actions-section hidden">
+            <p class="trash-info">Itens na lixeira podem ser restaurados como tarefas ativas ou excluídos definitivamente.</p>
+            <button type="button" id="btn-empty-trash" class="btn-empty-trash">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                Esvaziar lixeira
+            </button>
+        </section>
+
+        <!-- Lista de Tarefas -->
+        <main class="tasks-main">
+            <ul id="task-list" class="task-list" aria-live="polite"></ul>
+
+            <!-- Estado Vazio -->
+            <div id="empty-state" class="empty-state">
+                <div class="empty-icon" id="empty-icon"></div>
+                <h2 id="empty-title">Nenhuma tarefa por aqui</h2>
+                <p id="empty-subtitle">Adicione sua primeira tarefa no campo acima para começar!</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Confirmação para Exclusão Definitiva -->
+    <div id="confirm-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-card">
+            <h3 id="modal-title">Excluir definitivamente?</h3>
+            <p id="modal-message">Esta ação não pode ser desfeita.</p>
+            <div class="modal-actions">
+                <button type="button" id="modal-cancel" class="btn-secondary">Cancelar</button>
+                <button type="button" id="modal-confirm" class="btn-danger">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificação Toast -->
+    <div id="toast" class="toast hidden" role="status" aria-live="polite">
+        <span id="toast-message"></span>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
