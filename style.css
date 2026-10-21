@@ -563,12 +563,12 @@ body {
     gap: 6px;
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--primary);
-    background-color: var(--primary-light);
+    color: var(--success);
+    background-color: var(--success-light);
 }
 
 .action-btn.btn-restore:hover {
-    background-color: var(--primary);
+    background-color: var(--success);
     color: #ffffff;
 }
 
