@@ -3,3 +3,5 @@ www/
 android/
 .DS_Store
 *.log
+*.apk
+

@@ -4,7 +4,11 @@ Aplicativo web e Android (**APK**) responsivo de lista de tarefas desenvolvido c
 
 ## Funcionalidades
 
-- **Adicionar tarefas**: Crie tarefas rapidamente com salvamento automático duplo (`localStorage` + memória nativa do Android `SharedPreferences`).
+- **Adicionar tarefas com Prioridade (`!!!`, `!!`, `!`)**:
+  - Ao clicar em `+` (Adicionar), abre um pop-up para classificar a prioridade da tarefa em **Alta (`!!!`)**, **Média (`!!`)** ou **Baixa (`!`)**.
+  - A prioridade escolhida é exibida ao lado direito da tarefa, próxima ao ícone da lixeira.
+- **Edição rápida em Pop-up**:
+  - Ao tocar em qualquer tarefa pendente, ela abre em um pop-up para editar o texto e/ou alterar sua prioridade.
 - **Concluir tarefas**:
   - Marque ou desmarque tarefas concluídas e filtre entre *Todas*, *Pendentes* e *Concluídas*.
   - Exibe data e hora de criação no lado esquerdo e data e hora de conclusão no lado direito do card.

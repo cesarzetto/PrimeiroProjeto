@@ -7,6 +7,9 @@ let currentTab = 'active'; // 'active' | 'trash'
 let currentFilter = 'all'; // 'all' | 'pending' | 'completed'
 let currentThemeMode = 'auto'; // 'auto' | 'light' | 'dark'
 let pendingDeleteAction = null;
+let pendingNewTaskTitle = '';
+let editingTaskId = null;
+let editingTaskPriority = '!!';
 
 // Seletores do DOM
 const dateDisplay = document.getElementById('date-display');
@@ -44,6 +47,17 @@ const modalTitle = document.getElementById('modal-title');
 const modalMessage = document.getElementById('modal-message');
 const modalCancel = document.getElementById('modal-cancel');
 const modalConfirm = document.getElementById('modal-confirm');
+
+const priorityModal = document.getElementById('priority-modal');
+const priorityModalPreview = document.getElementById('priority-modal-preview');
+const priorityOptionBtns = document.querySelectorAll('.priority-option-btn');
+const priorityModalCancel = document.getElementById('priority-modal-cancel');
+
+const editModal = document.getElementById('edit-modal');
+const editTaskForm = document.getElementById('edit-task-form');
+const editTaskInput = document.getElementById('edit-task-input');
+const editPriorityPills = document.querySelectorAll('.edit-priority-pill');
+const editModalCancel = document.getElementById('edit-modal-cancel');
 
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toast-message');
@@ -261,16 +275,58 @@ function bindEvents() {
         });
     }
 
-    // Adicionar nova tarefa
+    // Adicionar nova tarefa -> abre pop-up de prioridade (!!!, !!, !)
     taskForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const title = taskInput.value.trim();
         if (!title) return;
 
-        addTask(title);
-        taskInput.value = '';
-        taskInput.focus();
+        openPriorityModal(title);
     });
+
+    // Botões de escolha de prioridade no pop-up de nova tarefa
+    priorityOptionBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const chosenPriority = btn.dataset.priority || '!!';
+            if (pendingNewTaskTitle) {
+                addTask(pendingNewTaskTitle, chosenPriority);
+                taskInput.value = '';
+            }
+            closePriorityModal();
+        });
+    });
+
+    if (priorityModalCancel) {
+        priorityModalCancel.addEventListener('click', closePriorityModal);
+    }
+    if (priorityModal) {
+        priorityModal.addEventListener('click', (e) => {
+            if (e.target === priorityModal) closePriorityModal();
+        });
+    }
+
+    // Pop-up de edição de tarefa pendente
+    editPriorityPills.forEach((pill) => {
+        pill.addEventListener('click', () => {
+            editingTaskPriority = pill.dataset.priority || '!!';
+            editPriorityPills.forEach((p) => p.classList.toggle('active', p === pill));
+        });
+    });
+
+    if (editTaskForm) {
+        editTaskForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveEditedTask();
+        });
+    }
+    if (editModalCancel) {
+        editModalCancel.addEventListener('click', closeEditModal);
+    }
+    if (editModal) {
+        editModal.addEventListener('click', (e) => {
+            if (e.target === editModal) closeEditModal();
+        });
+    }
 
     // Alternar entre abas (Tarefas vs Lixeira)
     tabButtons.forEach((btn) => {
@@ -318,23 +374,30 @@ function bindEvents() {
 
     // Ações nos itens da lista (delegação de eventos)
     taskList.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-action]');
-        if (!btn) return;
-
-        const itemEl = btn.closest('.task-item');
+        const itemEl = e.target.closest('.task-item');
         if (!itemEl) return;
 
         const id = itemEl.dataset.id;
-        const action = btn.dataset.action;
+        const btn = e.target.closest('button[data-action]');
 
-        if (action === 'toggle') {
-            toggleTaskCompleted(id);
-        } else if (action === 'move-to-trash') {
-            moveToTrash(id);
-        } else if (action === 'restore') {
-            restoreFromTrash(id);
-        } else if (action === 'delete-forever') {
-            confirmDeleteForever(id);
+        if (btn) {
+            const action = btn.dataset.action;
+            if (action === 'toggle') {
+                toggleTaskCompleted(id);
+            } else if (action === 'move-to-trash') {
+                moveToTrash(id);
+            } else if (action === 'restore') {
+                restoreFromTrash(id);
+            } else if (action === 'delete-forever') {
+                confirmDeleteForever(id);
+            }
+            return;
+        }
+
+        // Ao tocar em uma tarefa pendente, abre o pop-up para editar o texto
+        const task = tasks.find((t) => t.id === id);
+        if (task && !task.completed && !task.inTrash) {
+            openEditModal(id);
         }
     });
 
@@ -351,11 +414,79 @@ function bindEvents() {
     });
 }
 
+// Pop-up de Prioridade ao Adicionar Tarefa
+function openPriorityModal(title) {
+    pendingNewTaskTitle = title;
+    if (priorityModalPreview) {
+        priorityModalPreview.textContent = `"${title}"`;
+    }
+    if (priorityModal) {
+        priorityModal.classList.remove('hidden');
+    }
+}
+
+function closePriorityModal() {
+    pendingNewTaskTitle = '';
+    if (priorityModal) {
+        priorityModal.classList.add('hidden');
+    }
+}
+
+// Pop-up de Edição de Tarefa Pendente
+function openEditModal(id) {
+    const task = tasks.find((t) => t.id === id);
+    if (!task || task.completed || task.inTrash) return;
+
+    editingTaskId = id;
+    editingTaskPriority = task.priority || '!';
+
+    if (editTaskInput) {
+        editTaskInput.value = task.title;
+    }
+
+    editPriorityPills.forEach((pill) => {
+        pill.classList.toggle('active', pill.dataset.priority === editingTaskPriority);
+    });
+
+    if (editModal) {
+        editModal.classList.remove('hidden');
+        setTimeout(() => {
+            if (editTaskInput) editTaskInput.focus();
+        }, 50);
+    }
+}
+
+function closeEditModal() {
+    editingTaskId = null;
+    if (editModal) {
+        editModal.classList.add('hidden');
+    }
+}
+
+function saveEditedTask() {
+    if (!editingTaskId) return;
+    const newTitle = editTaskInput ? editTaskInput.value.trim() : '';
+    if (!newTitle) return;
+
+    const task = tasks.find((t) => t.id === editingTaskId);
+    if (task && !task.completed && !task.inTrash) {
+        task.title = newTitle;
+        task.priority = editingTaskPriority || task.priority || '!';
+        saveTasks();
+        render();
+        showToast('Tarefa atualizada');
+    }
+
+    closeEditModal();
+}
+
 // Operações de Tarefas
-function addTask(title) {
+function addTask(title, priority = '!!') {
+    const validPriority = ['!!!', '!!', '!'].includes(priority) ? priority : '!!';
     const newTask = {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
         title,
+        priority: validPriority,
         completed: false,
         inTrash: false,
         createdAt: new Date().toISOString()
@@ -370,7 +501,7 @@ function addTask(title) {
     }
 
     render();
-    showToast('Tarefa adicionada');
+    showToast(`Tarefa adicionada (${validPriority})`);
 }
 
 function toggleTaskCompleted(id) {
@@ -445,7 +576,7 @@ async function exportTasksToJson() {
 
     const payload = {
         app: 'MyTask',
-        version: '1.2.0',
+        version: '1.3.0',
         exportedAt: now.toISOString(),
         tasks
     };
@@ -531,6 +662,7 @@ function importTasksFromJson(file) {
                             ? item.id.trim()
                             : Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
                     title: item.title.trim().slice(0, 140),
+                    priority: ['!!!', '!!', '!'].includes(item.priority) ? item.priority : '!',
                     completed: Boolean(item.completed),
                     inTrash: Boolean(item.inTrash),
                     createdAt: item.createdAt || new Date().toISOString()
@@ -626,6 +758,21 @@ function getVisibleTasks() {
     return activeTasks;
 }
 
+function getPriorityBadgeHtml(priority) {
+    const p = ['!!!', '!!', '!'].includes(priority) ? priority : '!';
+    const classMap = {
+        '!!!': 'priority-high',
+        '!!': 'priority-medium',
+        '!': 'priority-low'
+    };
+    const labelMap = {
+        '!!!': 'Prioridade Alta (!!!)',
+        '!!': 'Prioridade Média (!!)',
+        '!': 'Prioridade Baixa (!)'
+    };
+    return `<span class="priority-badge ${classMap[p]}" title="${labelMap[p]}" aria-label="${labelMap[p]}">${p}</span>`;
+}
+
 function createTaskElement(task) {
     const li = document.createElement('li');
     li.className = `task-item${task.completed && !task.inTrash ? ' completed' : ''}`;
@@ -633,13 +780,15 @@ function createTaskElement(task) {
 
     const formattedCreated = formatShortDate(task.createdAt);
     const formattedCompleted = task.completedAt ? formatShortDate(task.completedAt) : '';
+    const priorityHtml = getPriorityBadgeHtml(task.priority);
 
     if (!task.inTrash) {
-        // Se a tarefa estiver concluída, não renderiza o botão de excluir/lixeira
+        // Se a tarefa estiver concluída, não renderiza o botão de excluir/lixeira, apenas a prioridade
         const actionsHtml = task.completed
-            ? ''
+            ? `<div class="task-actions">${priorityHtml}</div>`
             : `
             <div class="task-actions">
+                ${priorityHtml}
                 <button type="button" class="action-btn btn-trash" data-action="move-to-trash" aria-label="Mover para a lixeira" title="Mover para a lixeira">
                     <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
@@ -653,12 +802,15 @@ function createTaskElement(task) {
                </span>`
             : '';
 
+        const editableClass = task.completed ? '' : ' editable-task';
+        const editableTitle = task.completed ? '' : ' title="Toque para editar a tarefa"';
+
         li.innerHTML = `
             <div class="task-left">
                 <button type="button" class="check-btn" data-action="toggle" aria-label="${task.completed ? 'Desmarcar tarefa' : 'Marcar como concluída'}" title="${task.completed ? 'Desmarcar' : 'Concluir'}">
                     <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 </button>
-                <div class="task-content">
+                <div class="task-content${editableClass}"${editableTitle}>
                     <span class="task-title">${escapeHtml(task.title)}</span>
                     <div class="task-dates-row">
                         <span class="task-date-created">Criada em ${formattedCreated}</span>
@@ -680,6 +832,7 @@ function createTaskElement(task) {
                 </div>
             </div>
             <div class="task-actions">
+                ${priorityHtml}
                 <button type="button" class="action-btn btn-restore" data-action="restore" aria-label="Restaurar como tarefa ativa" title="Restaurar como tarefa ativa">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                     <span>Restaurar</span>
